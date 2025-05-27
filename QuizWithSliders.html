@@ -132,13 +132,43 @@
       }
 
       .submitButton:disabled:hover {
-        background: #ccc; /* same as .submitButton:disabled */
-        transform: none; /* cancel hover transform */
+        background: #ccc;
+        transform: none;
       }
 
       .submitButton:hover {
         background: linear-gradient(135deg, #1a2028, #1c2836);
         transform: translateY(-2px);
+      }
+      .customAnswerContainerHidden {
+        display: none;
+      }
+
+      .showCustomTextareaButton {
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        resize: none;
+      }
+
+      .customAnswerContainerShown {
+        display: flex;
+        flex-direction: column;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f9f9f9;
+      }
+
+      .customAnswerTextareaHidden {
+        display: none;
+      }
+      .customAnswerTextareaShown {
+        width: 100%;
+        height: 100px;
+        margin-top: 5px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        resize: none;
       }
     </style>
   </head>
@@ -150,6 +180,16 @@
       <div class="quizContainer">
         <div class="question" id="questionText"></div>
         <div id="answersContainer"></div>
+        <div id="customAnswerContainer" class="customAnswerContainerHidden">
+          <button id="showTextArea" class="showCustomTextareaButton">
+            Show
+          </button>
+          <textarea
+            name="add custom answer"
+            id="customAnswerTextareaId"
+            class="customAnswerTextareaHidden"
+          ></textarea>
+        </div>
       </div>
       <div class="nextBtnContainer">
         <button class="nextBtn" id="nextBtn">Next</button>
@@ -213,19 +253,43 @@
       let currentIndex = 0;
       let selectedAnswers = {};
       let sliderAnswer = false; // Toggle this to false for normal answers
+
       const prevBtn = document.getElementById("prevBtn");
       const nextBtn = document.getElementById("nextBtn");
       const submitBtn = document.getElementById("submitBtn");
-
+      const showTextArea = document.getElementById("showTextArea");
       submitBtn.disabled = true;
 
-      function changeButton({ prevBtn, nextBtn, submitBtn, _id }) {
+      const customAnswerTextarea = document.getElementById(
+        "customAnswerTextareaId"
+      );
+
+      showTextArea.addEventListener("click", () => {
+        if (
+          customAnswerTextarea.classList.contains("customAnswerTextareaHidden")
+        ) {
+          customAnswerTextarea.classList.remove("customAnswerTextareaHidden");
+          customAnswerTextarea.classList.add("customAnswerTextareaShown");
+          return;
+        }
+
+        if (
+          customAnswerTextarea.classList.contains("customAnswerTextareaShown")
+        ) {
+          customAnswerTextarea.classList.remove("customAnswerTextareaShown");
+          customAnswerTextarea.classList.add("customAnswerTextareaHidden");
+        }
+      });
+
+      function changeButtonsState({ prevBtn, nextBtn, submitBtn, _id }) {
         if (currentIndex === 0) {
           prevBtn.disabled = true;
         } else {
           prevBtn.disabled = false;
         }
-        if (
+        if (currentIndex === quizData.length - 1) {
+          nextBtn.disabled = true;
+        } else if (
           !selectedAnswers[_id] ||
           !Array.isArray(selectedAnswers[_id]) ||
           selectedAnswers[_id].length === 0
@@ -247,23 +311,37 @@
         }
       }
 
+      function showCustomAnswerOption() {
+        let customAnswerContainer = document.getElementById(
+          "customAnswerContainer"
+        );
+        if (
+          customAnswerContainer.classList.contains(
+            "customAnswerContainerHidden"
+          )
+        ) {
+          customAnswerContainer.classList.remove("customAnswerContainerHidden");
+          customAnswerContainer.classList.add("customAnswerContainerShown");
+        }
+      }
+
       function renderQuestion() {
         const { question, _id, multiSelection } = quizData[currentIndex];
 
         const answersEl = document.getElementById("answersContainer");
         const questionEl = document.getElementById("questionText");
-        changeButton({ nextBtn, prevBtn, submitBtn, _id });
         questionEl.textContent = question;
         answersEl.innerHTML = "";
 
         if (sliderAnswer) {
+          // submitBtn.disabled = false;
           const sliderWrapper = document.createElement("div");
           sliderWrapper.className = "slider-wrapper";
 
           sliderWrapper.innerHTML = `
-          <input type="range" id="sliderInput" min="1" max="10" value="${
-            selectedAnswers[_id] || 5
-          }" step="1">
+          <input type="range" id="sliderInput" min="1" max="10" value="${(selectedAnswers[
+            _id
+          ] = [5])}" step="1">
           <div class="range-labels">
             ${Array.from(
               { length: 10 },
@@ -279,11 +357,15 @@
 
           sliderInput.addEventListener("input", () => {
             sliderValue.textContent = sliderInput.value;
-            selectedAnswers[_id] = sliderInput.value;
+            selectedAnswers[_id] = [sliderInput.value];
           });
           // Initialize value
-          selectedAnswers[_id] = sliderInput.value;
+          selectedAnswers[_id] = [sliderInput.value];
+          changeButtonsState({ nextBtn, prevBtn, submitBtn, _id });
         } else {
+          showCustomAnswerOption();
+          changeButtonsState({ nextBtn, prevBtn, submitBtn, _id });
+
           const answers = {};
           for (const [key, value] of Object.entries(quizData[currentIndex])) {
             if (key.startsWith("answer")) {
@@ -301,7 +383,7 @@
 
             if (selected.includes(answer)) {
               answerDiv.classList.add("selected");
-              changeButton({ nextBtn, submitBtn, prevBtn, _id });
+              changeButtonsState({ nextBtn, submitBtn, prevBtn, _id });
             }
 
             answerDiv.addEventListener("click", () => {
@@ -314,12 +396,12 @@
                     (a) => a !== answer
                   );
                   answerDiv.classList.remove("selected");
-                  changeButton({ nextBtn, submitBtn, prevBtn, _id });
+                  changeButtonsState({ nextBtn, submitBtn, prevBtn, _id });
                 } else {
                   selectedAnswers[_id] = selectedAnswers[_id] || [];
                   selectedAnswers[_id].push(answer);
                   answerDiv.classList.add("selected");
-                  changeButton({ nextBtn, submitBtn, prevBtn, _id });
+                  changeButtonsState({ nextBtn, submitBtn, prevBtn, _id });
                 }
               } else {
                 selectedAnswers[_id] = [answer];
@@ -327,7 +409,7 @@
                   .querySelectorAll(".answer")
                   .forEach((el) => el.classList.remove("selected"));
                 answerDiv.classList.add("selected");
-                changeButton({ nextBtn, submitBtn, prevBtn, _id });
+                changeButtonsState({ nextBtn, submitBtn, prevBtn, _id });
               }
             });
             answersEl.appendChild(answerDiv);
