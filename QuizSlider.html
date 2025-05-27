@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quiz</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        /* max-width: 600px;
+        margin: auto; */
+      }
+      .container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        margin-top: 20px;
+        justify-content: center;
+        width: 100%;
+      }
+      .quizContainer {
+        flex: 1;
+        max-width: 600px;
+        height: 400px;
+        overflow-y: auto;
+        padding: 20px;
+        border-radius: 10px;
+        background: #f3f3f3;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      .prevBtnContainer {
+        margin-right: 50px;
+      }
+      .nextBtnContainer {
+        margin-left: 50px;
+      }
+      .prevBtn {
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: 500;
+        color: white;
+        background: linear-gradient(135deg, #222c36, #243342);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .nextBtn {
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: 500;
+        color: white;
+        background: linear-gradient(135deg, #222c36, #243342);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .question {
+        font-size: 1.2em;
+        margin-bottom: 1em;
+      }
+      .answer {
+        padding: 1em;
+        margin: 0.5em 0;
+        background: #c2c2c2;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+      .answer.selected {
+        background: green;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="prevBtnContainer">
+        <button class="prevBtn" id="prevBtn">Previous</button>
+      </div>
+      <div class="quizContainer">
+        <div class="question" id="questionText"></div>
+        <div id="answersContainer"></div>
+      </div>
+      <div class="nextBtnContainer">
+        <button class="nextBtn" id="nextBtn">Next</button>
+      </div>
+    </div>
+
+    <script>
+      // let quizData = [
+      //   {
+      //     answer2: "I feel overwhelmed but try to push through",
+      //     answer1:
+      //       "How do you typically respond to high-pressure situations at work?	I stay calm and focus on problem-solving",
+      //     answer3: "I seek help or delegate tasks",
+      //     answer4: "I procrastinate or avoid the situation initially",
+      //     answer6: "Some random answer 6 added to check dynamical rendering",
+      //     question:
+      //       "How do you typically respond to high-pressure situations at work?",
+      //     answer6: "Some random answer 6 added to check dynamical rendering",
+      //     _id: "4afca61a-eeb4-440a-96a0-d0be5bd1d994",
+      //     _owner: "8b26476a-8c84-4ed5-93b9-1967cb95b58d",
+      //     multiSelection: true,
+      //   },
+      //   {
+      //     answer2: "Receiving recognition and praise",
+      //     answer1: "What motivates you most in your work?",
+      //     answer3: "Achieving personal and team goals",
+      //     answer4: "Learning new skills and taking on challenges",
+      //     question: "What motivates you most in your work?",
+      //     _id: "487cf556-f192-4000-be5c-c13728c94d40",
+      //     _owner: "8b26476a-8c84-4ed5-93b9-1967cb95b58d",
+      //   },
+      //   {
+      //     answer2: "Flexible and creative, with room for innovation",
+      //     answer1: "Structured and predictable, with clear guidelines",
+      //     answer3: "Collaborative and team-oriented, with open communication",
+      //     answer4: "Fast-paced and dynamic, with constant change",
+      //     answer5: "Some random answer 5 added to check dynamical rendering",
+      //     question: "What best describes your ideal work environment?",
+      //     _id: "cb0d2cad-ce59-48c4-b2bd-a40e95e2ecac",
+      //     _owner: "8b26476a-8c84-4ed5-93b9-1967cb95b58d",
+      //   },
+      //   {
+      //     answer2: "I feel defensive but reflect on it later",
+      //     answer1: "I take it constructively and try to improve",
+      //     answer3: "I ignore it if I disagree",
+      //     answer4: "I feel hurt but try to learn from it",
+      //     answer5: "Some random answer 5 added to check dynamical rendering",
+      //     question: "How do you handle feedback from supervisors or coworkers?",
+      //     _id: "3dc93c7c-5943-437a-b51c-b26c8ff637d2",
+      //     _owner: "8b26476a-8c84-4ed5-93b9-1967cb95b58d",
+      //   },
+      // ];
+
+      var quizData = null;
+      let currentIndex = 0;
+      let selectedAnswers = {};
+      let sliderAnswer = true;
+
+      function renderQuestion() {
+        const { question, _id, multiSelection } = quizData[currentIndex];
+        const answers = {};
+
+        for (const [key, value] of Object.entries(quizData[currentIndex])) {
+          if (key.startsWith("answer")) {
+            answers[key] = value;
+          }
+        }
+
+        const questionEl = document.getElementById("questionText");
+        const answersEl = document.getElementById("answersContainer");
+        questionEl.textContent = question;
+        answersEl.innerHTML = "";
+
+        for (let answer in answers) {
+          const answerDiv = document.createElement("div");
+          answerDiv.className = "answer";
+          answerDiv.textContent = answers[answer];
+          answerDiv.dataset.id = answer;
+
+          const selected = selectedAnswers[_id] || [];
+
+          if (selected.includes(answer)) {
+            answerDiv.classList.add("selected");
+          }
+
+          answerDiv.addEventListener("click", () => {
+            if (multiSelection) {
+              if (
+                selectedAnswers[_id] &&
+                selectedAnswers[_id].length &&
+                selectedAnswers[_id].includes(answer)
+              ) {
+                let pos = selectedAnswers[_id].indexOf(answer);
+                if (pos === -1) return;
+
+                selectedAnswers[_id].splice(pos, 1);
+                answerDiv.classList.remove("selected");
+              } else if (selectedAnswers[_id]) {
+                selectedAnswers[_id].push(answer);
+                answerDiv.classList.add("selected");
+              } else {
+                selectedAnswers[_id] = [answer];
+                answerDiv.classList.add("selected");
+              }
+            } else {
+              // Clear all selections visually + logically
+              selectedAnswers[_id] = [];
+              document
+                .querySelectorAll(".answer")
+                .forEach((el) => el.classList.remove("selected"));
+              // Mark selected one
+              selectedAnswers[_id] = [answer];
+              answerDiv.classList.add("selected");
+            }
+          });
+          answersEl.appendChild(answerDiv);
+        }
+      }
+
+      document.getElementById("prevBtn").addEventListener("click", () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+          renderQuestion();
+        }
+      });
+
+      document.getElementById("nextBtn").addEventListener("click", () => {
+        if (currentIndex < quizData.length - 1) {
+          currentIndex++;
+          renderQuestion();
+        }
+      });
+
+      window.addEventListener("message", (event) => {
+        if (event.data) {
+          quizData = event.data;
+          currentIndex = 0;
+          selectedAnswers = {};
+          renderQuestion();
+        }
+      });
+
+      // renderQuestion();
+    </script>
+  </body>
+</html>
