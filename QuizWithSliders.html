@@ -47,6 +47,12 @@
         transition: background 0.3s, transform 0.2s;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
+
+      .nextBtn:disabled,
+      .prevBtn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
       .question {
         font-size: 1.2em;
         margin-bottom: 1em;
@@ -98,6 +104,42 @@
         font-size: 14px;
         color: #666;
       }
+
+      .submitButtonContainer {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .submitButton {
+        width: 200px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: 500;
+        color: white;
+        background: linear-gradient(135deg, #222c36, #243342);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+      }
+
+      .submitButton:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .submitButton:disabled:hover {
+        background: #ccc; /* same as .submitButton:disabled */
+        transform: none; /* cancel hover transform */
+      }
+
+      .submitButton:hover {
+        background: linear-gradient(135deg, #1a2028, #1c2836);
+        transform: translateY(-2px);
+      }
     </style>
   </head>
   <body>
@@ -114,6 +156,10 @@
       </div>
     </div>
 
+    <div class="submitButtonContainer">
+      <button id="submitBtn" class="submitButton">Submit</button>
+    </div>
+
     <script>
       let quizData = [
         {
@@ -122,10 +168,12 @@
             "How do you typically respond to high-pressure situations at work?	I stay calm and focus on problem-solving",
           answer3: "I seek help or delegate tasks",
           answer4: "I procrastinate or avoid the situation initially",
-          answer6: "Some random answer 6 added to check dynamical rendering",
+          answer6: "Some random answer 7 added to check dynamical rendering",
+          answer7: "Some random answer 8 added to check dynamical rendering",
+          answer8: "Some random answer 9 added to check dynamical rendering",
           question:
             "How do you typically respond to high-pressure situations at work?",
-          answer6: "Some random answer 6 added to check dynamical rendering",
+          answer9: "Some random answer 10 added to check dynamical rendering",
           _id: "4afca61a-eeb4-440a-96a0-d0be5bd1d994",
           _owner: "8b26476a-8c84-4ed5-93b9-1967cb95b58d",
           multiSelection: true,
@@ -165,12 +213,46 @@
       let currentIndex = 0;
       let selectedAnswers = {};
       let sliderAnswer = false; // Toggle this to false for normal answers
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      const submitBtn = document.getElementById("submitBtn");
+
+      submitBtn.disabled = true;
+
+      function changeButton({ prevBtn, nextBtn, submitBtn, _id }) {
+        if (currentIndex === 0) {
+          prevBtn.disabled = true;
+        } else {
+          prevBtn.disabled = false;
+        }
+        if (
+          !selectedAnswers[_id] ||
+          !Array.isArray(selectedAnswers[_id]) ||
+          selectedAnswers[_id].length === 0
+        ) {
+          nextBtn.disabled = true;
+        } else {
+          nextBtn.disabled = false;
+        }
+
+        if (Object.keys(selectedAnswers).length === quizData.length) {
+          let allAnswered = true;
+          for (const key in selectedAnswers) {
+            if (!selectedAnswers[key] || selectedAnswers[key].length === 0) {
+              allAnswered = false;
+              break;
+            }
+          }
+          submitBtn.disabled = !allAnswered;
+        }
+      }
 
       function renderQuestion() {
         const { question, _id, multiSelection } = quizData[currentIndex];
+
         const answersEl = document.getElementById("answersContainer");
         const questionEl = document.getElementById("questionText");
-
+        changeButton({ nextBtn, prevBtn, submitBtn, _id });
         questionEl.textContent = question;
         answersEl.innerHTML = "";
 
@@ -219,6 +301,7 @@
 
             if (selected.includes(answer)) {
               answerDiv.classList.add("selected");
+              changeButton({ nextBtn, submitBtn, prevBtn, _id });
             }
 
             answerDiv.addEventListener("click", () => {
@@ -231,10 +314,12 @@
                     (a) => a !== answer
                   );
                   answerDiv.classList.remove("selected");
+                  changeButton({ nextBtn, submitBtn, prevBtn, _id });
                 } else {
                   selectedAnswers[_id] = selectedAnswers[_id] || [];
                   selectedAnswers[_id].push(answer);
                   answerDiv.classList.add("selected");
+                  changeButton({ nextBtn, submitBtn, prevBtn, _id });
                 }
               } else {
                 selectedAnswers[_id] = [answer];
@@ -242,6 +327,7 @@
                   .querySelectorAll(".answer")
                   .forEach((el) => el.classList.remove("selected"));
                 answerDiv.classList.add("selected");
+                changeButton({ nextBtn, submitBtn, prevBtn, _id });
               }
             });
             answersEl.appendChild(answerDiv);
@@ -249,18 +335,28 @@
         }
       }
 
-      document.getElementById("prevBtn").addEventListener("click", () => {
+      prevBtn.addEventListener("click", () => {
         if (currentIndex > 0) {
           currentIndex--;
           renderQuestion();
         }
       });
 
-      document.getElementById("nextBtn").addEventListener("click", () => {
+      nextBtn.addEventListener("click", () => {
         if (currentIndex < quizData.length - 1) {
           currentIndex++;
           renderQuestion();
         }
+      });
+
+      submitBtn.addEventListener("click", () => {
+        window.parent.postMessage(
+          {
+            type: "quizSubmission",
+            payload: selectedAnswers,
+          },
+          "*"
+        );
       });
 
       //   window.addEventListener("message", (event) => {
@@ -273,12 +369,7 @@
       //   });
 
       // Example trigger (uncomment this to test directly)
-      /*
-    quizData = [
-      { question: "Rate your confidence in coding (1-10)", _id: "q1" },
-      { question: "Rate your interest in design (1-10)", _id: "q2" },
-    ];
-    */
+
       renderQuestion();
     </script>
   </body>
