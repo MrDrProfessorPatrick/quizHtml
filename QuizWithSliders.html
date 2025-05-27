@@ -252,7 +252,9 @@
       //   var quizData = null;
       let currentIndex = 0;
       let selectedAnswers = {};
+      let customAnswersResult = {};
       let sliderAnswer = false; // Toggle this to false for normal answers
+      let currentQuestionId = null;
 
       const prevBtn = document.getElementById("prevBtn");
       const nextBtn = document.getElementById("nextBtn");
@@ -278,6 +280,28 @@
         ) {
           customAnswerTextarea.classList.remove("customAnswerTextareaShown");
           customAnswerTextarea.classList.add("customAnswerTextareaHidden");
+        }
+      });
+
+      function addCustomAnswer(_id) {
+        console.log("customAnswersResult[_id]", customAnswersResult[_id]);
+        if (!customAnswersResult[_id]) {
+          customAnswerTextarea.value = "";
+        } else {
+          customAnswerTextarea.value = customAnswersResult[_id];
+        }
+      }
+
+      customAnswerTextarea.addEventListener("input", (event) => {
+        const customAnswer = customAnswerTextarea.value;
+        if (customAnswer) {
+          customAnswersResult[currentQuestionId] = customAnswer;
+          changeButtonsState({
+            nextBtn,
+            prevBtn,
+            submitBtn,
+            _id: currentQuestionId,
+          });
         }
       });
 
@@ -327,6 +351,7 @@
 
       function renderQuestion() {
         const { question, _id, multiSelection } = quizData[currentIndex];
+        currentQuestionId = _id;
 
         const answersEl = document.getElementById("answersContainer");
         const questionEl = document.getElementById("questionText");
@@ -364,6 +389,7 @@
           changeButtonsState({ nextBtn, prevBtn, submitBtn, _id });
         } else {
           showCustomAnswerOption();
+          addCustomAnswer(_id);
           changeButtonsState({ nextBtn, prevBtn, submitBtn, _id });
 
           const answers = {};
